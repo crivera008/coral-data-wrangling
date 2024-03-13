@@ -91,7 +91,6 @@ def agg(group):
 # samples = samples.drop('Activity ID', axis=1)
 
 # Rename some columns because I like it better this way :)
-# Renaming columns because I like it better this way :)
 correct_columns = correct_columns.drop('Activity ID', axis=1)
 clean_data = correct_columns.rename({'Average.':'Average color code', 'Colour Code Lightest': 'Lightest color code', 'Colour Code Darkest': 'Darkest color code', 'Coral Type': 'Coral type', 'Site Name': 'Site name', 'Depth (metres)': 'Depth (m)', 'Water temperature (deg. C)': 'Water temperature (C)'}, axis=1)
 
