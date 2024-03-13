@@ -77,7 +77,7 @@ correct_columns = correct_columns.drop('Photo of the reef surveyed', axis=1)
 
 # Aggregate by Activity ID and coral type (representing unique instances of data collection)
 def agg(group):
-    cols_to_agg = ['Photo of the reef surveyed', 'Colour Code Lightest', 'Colour Code Darkest', 'Average.', 'Species', 'Photo']
+    cols_to_agg = ['Photo of the reef surveyed', 'Colour Code Lightest', 'Colour Code Darkest', 'Average.', 'Species', 'Photo', 'Coral Type']
     agg_vals = {}
     for col in group.columns:
         if col not in cols_to_agg:
@@ -88,10 +88,11 @@ def agg(group):
 
 # NOTE: commented out for now b/c not sure if this fits 'tidy data'
 # samples = correct_columns.groupby(['Activity ID', 'Coral Type']).apply(agg).reset_index(drop=True)
-# samples = samples.drop('Activity ID', axis=1)
+samples = correct_columns.groupby('Activity ID').apply(agg).reset_index(drop=True)
+samples = samples.drop('Activity ID', axis=1)
 
 # Rename some columns because I like it better this way :)
-correct_columns = correct_columns.drop('Activity ID', axis=1)
-clean_data = correct_columns.rename({'Average.':'Average color code', 'Colour Code Lightest': 'Lightest color code', 'Colour Code Darkest': 'Darkest color code', 'Coral Type': 'Coral type', 'Site Name': 'Site name', 'Depth (metres)': 'Depth (m)', 'Water temperature (deg. C)': 'Water temperature (C)'}, axis=1)
+samples = samples.drop('Activity ID', axis=1)
+clean_data = samples.rename({'Average.':'Average color code', 'Colour Code Lightest': 'Lightest color code', 'Colour Code Darkest': 'Darkest color code', 'Coral Type': 'Coral type', 'Site Name': 'Site name', 'Depth (metres)': 'Depth (m)', 'Water temperature (deg. C)': 'Water temperature (C)'}, axis=1)
 
 clean_data.to_pickle('clean_data.pkl')
