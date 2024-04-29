@@ -76,17 +76,23 @@ def combine_photos(row):
 correct_columns['Photo'] = correct_columns.apply(combine_photos, axis=1)
 correct_columns = correct_columns.drop('Photo of the reef surveyed', axis=1)
 
-# Function to avg coral colors
-key = {"B":0, "E":1, "D":2, "C":3}
-and_back = {0: "B", 1:"E", 2:"D", 3:"C"}
+key = {"B1":[249,250,234],"B2":[243,245,193],"B3":[233,236,137],"B4":[199,207,58],"B5":[150,158,57],"B6":[91,116,52],"C1":[249,238,235],"C2":[247,202,192],"C3":[242,157,136],"C4":[209,91,58],"C5":[155,49,32],"C6":[101,26,13],"D1":[248,238,225],"D2":[249,220,191],"D3":[240,189,135],"D4":[212,148,79],"D5":[151,89,36],"D6":[106,57,22],"E1":[248,245,229],"E2":[247,234,192],"E3":[240,214,136],"E4":[210,174,69],"E5":[155,125,46],"E6":[111,85,33]}
+
+def most_common_letter(row, col1, col2):
+    letters = [value[0] for value in row[col1]] + [value[0] for value in row[col2]]
+    return pd.Series(letters).mode().iloc[0]
 
 def avg_coords(color_codes):
-    x_vals = [key[x[0]] for x in color_codes]
-    y_vals = [int(x[1]) for x in color_codes]
-    mean_x = round(np.mean(x_vals))
-    mean_x_translated = and_back[mean_x]
-    mean_y = round(np.mean(y_vals))
-    return mean_x_translated + str(mean_y)
+    diff_colors = set([c[0] for c in color_codes])
+    avgs = []
+    for c in diff_colors:
+        filtered = list(filter(lambda x: x[0] == c, color_codes))
+        y_vals = [int(x[1]) for x in filtered]
+        mean_y = round(np.mean(y_vals))
+        avg = c + str(mean_y)
+        avgs.append(avg)
+    return avgs
+    
 
 def agg(group):
     cols_to_agg = ['Colour Code Lightest', 'Colour Code Darkest', 'Average.', 'Species', 'Photo']
@@ -106,12 +112,16 @@ samples = correct_columns.groupby(['Activity ID', 'Coral Type']).apply(agg).rese
 samples = samples.drop('Activity ID', axis=1)
 correct_columns['Group name'].apply(lambda x: string.capwords(x))
 samples['Colour Code Lightest'] = samples['Colour Code Lightest'].apply(avg_coords)
-samples['Colour Code Darkest'] = samples['Colour Code Darkest'].apply(avg_coords) 
+samples['Colour Code Darkest'] = samples['Colour Code Darkest'].apply(avg_coords)
 
 # Add year col!
 samples['Year'] = pd.to_datetime(samples['Observation date']).dt.year
 
+samples['Calculated average color'] = samples.apply(lambda x: most_common_letter(x, 'Colour Code Lightest', 'Colour Code Darkest'), axis=1)
+samples['Calculated average color'] = samples['Calculated average color'] + samples['Average.'].apply(lambda x: str(round(x)))
+samples['Calculated average color'] = samples['Calculated average color'].apply(lambda x: key[x])
+
 # Renaming columns because I like it better this way :)
-clean_data = samples.rename({'Average.':'Average color', 'Colour Code Lightest': 'Lightest color code', 'Colour Code Darkest': 'Darkest color code', 'Coral Type': 'Coral type', 'Site Name': 'Site name', 'Depth (metres)': 'Depth (m)', 'Water temperature (deg. C)': 'Water temperature (C)'}, axis=1)
+clean_data = samples.rename({'Average.':'Average val', 'Colour Code Lightest': 'Lightest color code', 'Colour Code Darkest': 'Darkest color code', 'Coral Type': 'Coral type', 'Site Name': 'Site name', 'Depth (metres)': 'Depth (m)', 'Water temperature (deg. C)': 'Water temperature (C)'}, axis=1)
 
 clean_data.to_pickle('clean_data.pkl')
