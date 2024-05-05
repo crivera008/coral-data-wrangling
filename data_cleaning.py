@@ -13,8 +13,8 @@ raw_data = pd.read_pickle('coral_data.pkl')
 
 # Drop irrelevant columns
 # If fahrenheit/feet desired as units, use these columns:  'Water temperature (deg. F)' and 'Depth (feet)'
-desired_columns = ['Activity ID', 'Latitude', 'Longitude', 'Site Name', 'Group name', 'Participating as', 
-       'Observation date', 'Time', 'Light condition', 'Depth (metres)', 'Water temperature (deg. C)', 'Activity',
+desired_columns = ['Activity ID', 'Latitude', 'Longitude', 'Site Name', 'Group name', 
+       'Observation date', 'Time', 'Light condition', 'Depth (metres)', 'Water temperature (deg. C)',
        'Photo of the reef surveyed', 'Colour Code Lightest', 'Colour Code Darkest', 'Average.', 
        'Coral Type', 'Species', 'Photo']
 correct_columns = raw_data[desired_columns]
@@ -24,7 +24,7 @@ nan_mask = correct_columns['Latitude'].isna() | correct_columns['Longitude'].isn
 correct_columns = correct_columns[~nan_mask]
 
 # Replace non-essential NaN vals with description
-correct_columns.fillna({'Group name':'Not recorded', 'Participating as':'Not recorded', 'Activity':'Not recorded', 'Light condition':'Not recorded', 'Species':"Not recorded"}, inplace=True)
+correct_columns.fillna({'Group name':'Not recorded', 'Light condition':'Not recorded', 'Species':"Not recorded"}, inplace=True)
 
 # Fix inaccurate/other NaN data
 correct_columns.loc[correct_columns['Water temperature (deg. C)'] == 0, 'Water temperature (deg. C)'] = 'Not recorded'
@@ -32,10 +32,8 @@ correct_columns.loc[correct_columns['Group name'] == 'unknown', 'Group name'] = 
 # note to self: time & observation date have some NaN values (<30) -- fix with string? fix with dummy val? tbd.
 
 # Standardizing
-correct_columns['Participating as'] = correct_columns['Participating as'].str.title()
 correct_columns['Group name'] = correct_columns['Group name'].apply(lambda x: string.capwords(x))
 correct_columns.loc[correct_columns['Group name'].str.contains('Æ') | correct_columns['Group name'].str.contains('ä'), 'Group name'] = 'Not reported'
-correct_columns.loc[correct_columns['Participating as'] == 'Individual (Non-Scientist)', 'Participating as'] = 'Individual (Non-Scientist/Researcher)'
 correct_columns['Observation date'] = pd.to_datetime(correct_columns['Observation date']).dt.date
 
 def time_cleaner(time):
@@ -76,7 +74,7 @@ def combine_photos(row):
 correct_columns['Photo'] = correct_columns.apply(combine_photos, axis=1)
 correct_columns = correct_columns.drop('Photo of the reef surveyed', axis=1)
 
-key = {"B1":[249,250,234],"B2":[243,245,193],"B3":[233,236,137],"B4":[199,207,58],"B5":[150,158,57],"B6":[91,116,52],"C1":[249,238,235],"C2":[247,202,192],"C3":[242,157,136],"C4":[209,91,58],"C5":[155,49,32],"C6":[101,26,13],"D1":[248,238,225],"D2":[249,220,191],"D3":[240,189,135],"D4":[212,148,79],"D5":[151,89,36],"D6":[106,57,22],"E1":[248,245,229],"E2":[247,234,192],"E3":[240,214,136],"E4":[210,174,69],"E5":[155,125,46],"E6":[111,85,33]}
+key = {"B1":"#F9FAEA","B2":"#F3F5C1","B3":"#E9EC89","B4":"#C7CF3A","B5":"#969E39","B6":"#5B7434","C1":"#F9EEEB","C2":"#F7CAC0","C3":"#F29D88","C4":"#D15B3A","C5":"#9B3120","C6":"#651A0D","D1":"#F8EEE1","D2":"#F9DCBF","D3":"#F0BD87","D4":"#D4944F","D5":"#975924","D6":"#6A3916","E1":"#F8F5E5","E2":"#F7EAC0","E3":"#F0D688","E4":"#D2AE45","E5":"#9B7D2E","E6":"#6F5521"}
 
 def most_common_letter(row, col1, col2):
     letters = [value[0] for value in row[col1]] + [value[0] for value in row[col2]]
@@ -114,6 +112,19 @@ correct_columns['Group name'].apply(lambda x: string.capwords(x))
 samples['Colour Code Lightest'] = samples['Colour Code Lightest'].apply(avg_coords)
 samples['Colour Code Darkest'] = samples['Colour Code Darkest'].apply(avg_coords)
 
+def pair_letters(row):
+    paired_strings = []
+    sorted_light = sorted(row['Colour Code Lightest'])
+    sorted_dark = sorted(row['Colour Code Darkest'])
+    
+    for letter1 in sorted_light:
+        for letter2 in sorted_dark:
+            if letter1[0] == letter2[0]:
+                paired_strings.append(f"{letter1}-{letter2}")
+    return paired_strings
+
+samples['Color Range By Letter'] = samples.apply(pair_letters, axis=1)
+
 # Add year col!
 samples['Year'] = pd.to_datetime(samples['Observation date']).dt.year
 
@@ -124,4 +135,4 @@ samples['Calculated average color'] = samples['Calculated average color'].apply(
 # Renaming columns because I like it better this way :)
 clean_data = samples.rename({'Average.':'Average val', 'Colour Code Lightest': 'Lightest color code', 'Colour Code Darkest': 'Darkest color code', 'Coral Type': 'Coral type', 'Site Name': 'Site name', 'Depth (metres)': 'Depth (m)', 'Water temperature (deg. C)': 'Water temperature (C)'}, axis=1)
 
-clean_data.to_pickle('clean_data.pkl')
+clean_data.to_csv('clean_data.csv', index=False)
